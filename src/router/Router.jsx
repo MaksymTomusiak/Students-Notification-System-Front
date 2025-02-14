@@ -6,6 +6,7 @@ import Register from '../features/auth/Register';
 import Login from '../features/auth/Login';
 import NotFoundPage from '../components/common/NotFoundPage';
 import ProtectedRoute from './ProtectedRoute';
+import CategoryPage from '../features/categories/CategoryPage';
 
 const Router = () => {
   return (
@@ -19,7 +20,16 @@ const Router = () => {
         <Route path="*" element={<NotFoundPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Layout />}></Route>
+        <Route path="/" element={<Layout />}>
+          <Route
+            path="/categories"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <CategoryPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
