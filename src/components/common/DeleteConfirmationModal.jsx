@@ -17,7 +17,7 @@ const DeleteConfirmationModal = ({
       open={open}
       onCancel={onClose}
       footer={[
-        <Flex gap="small" justify="center">
+        <Flex gap="small" justify="center" key="footer-buttons">
           <Button key="cancel" onClick={onClose}>
             Cancel
           </Button>

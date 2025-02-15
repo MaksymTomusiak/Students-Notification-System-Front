@@ -36,7 +36,7 @@ export class UserService {
       baseURL: `${apiUrl}/users`,
       signal,
     });
-    return await httpClient.put('/update', { ...user.profile, ...user });
+    return await httpClient.put('/update', { ...user });
   }
 
   static async deleteUserById(id, signal) {

@@ -52,7 +52,10 @@ const CategoryComponent = () => {
     try {
       turnOnLoading();
       await CategoryService.deleteCategoryById(id);
-      dispatch({ type: 'DELETE_CATEGORY', payload: { id } });
+      dispatch({
+        type: CategoriesCrudActionTypes.DELETE_CATEGORY,
+        payload: { id },
+      });
       message.success('Category deleted successfully');
     } catch (error) {
       message.error(error.response?.data || error.message);
@@ -90,6 +93,10 @@ const CategoryComponent = () => {
     });
   };
 
+  const handleFilterChange = (e) => {
+    setFilterQuery(e.target.value);
+  };
+
   const filteredCategories = state.filter((category) =>
     Object.entries(category).some(
       ([key, value]) =>
@@ -103,7 +110,7 @@ const CategoryComponent = () => {
       <Search
         placeholder="Search categories..."
         value={filterQuery}
-        onChange={(e) => setFilterQuery(e.target.value)}
+        onChange={handleFilterChange}
         allowClear
         style={{ marginBottom: '16px', width: '300px' }}
       />

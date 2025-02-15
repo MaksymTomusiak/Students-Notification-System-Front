@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Table } from 'antd';
-import CategoryTableRow from './CategoryTableRow';
+import CategoryActions from './CategoryActions';
 
 const CategoriesTable = ({
   categories,
@@ -23,7 +23,7 @@ const CategoriesTable = ({
       key: 'actions',
       align: 'center',
       render: (_, category) => (
-        <CategoryTableRow
+        <CategoryActions
           key={category.id}
           category={category}
           onCategoryDelete={onCategoryItemDelete}

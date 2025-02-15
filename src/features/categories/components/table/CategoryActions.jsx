@@ -3,7 +3,7 @@ import { Button, Space } from 'antd';
 import EditCategoryModal from '../EditCategoryModal';
 import DeleteConfirmationModal from '../../../../components/common/DeleteConfirmationModal';
 
-const CategoryTableRow = ({ category, onCategoryDelete, onCategoryUpdate }) => {
+const CategoryActions = ({ category, onCategoryDelete, onCategoryUpdate }) => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
@@ -54,4 +54,4 @@ const CategoryTableRow = ({ category, onCategoryDelete, onCategoryUpdate }) => {
   );
 };
 
-export default CategoryTableRow;
+export default CategoryActions;
