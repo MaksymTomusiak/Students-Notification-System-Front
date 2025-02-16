@@ -21,6 +21,12 @@ function UserTable({ users, onUserDelete }) {
       align: 'center',
     },
     {
+      title: 'Phone Number',
+      key: 'phoneNumber',
+      align: 'center',
+      render: (_, user) => user.phoneNumber || 'N/A',
+    },
+    {
       title: 'Roles',
       key: 'roles',
       align: 'center',

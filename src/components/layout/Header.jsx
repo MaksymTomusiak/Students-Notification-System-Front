@@ -8,6 +8,7 @@ const adminPages = [
   { label: 'Home', key: 'home', path: '/' },
   { label: 'Users', key: 'users', path: '/users' },
   { label: 'Categories', key: 'categories', path: '/categories' },
+  { label: 'Courses', key: 'courses', path: '/courses' },
 ];
 
 const userPages = [{ label: 'Home', key: 'home', path: '/' }];

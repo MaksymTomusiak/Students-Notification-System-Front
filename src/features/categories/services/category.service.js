@@ -14,24 +14,6 @@ export class CategoryService {
   }
 
   /**
-   * @param {number} page
-   * @param {number} pageSize
-   * @param {string} search
-   * @param {AbortSignal} signal
-   */
-  static async getPagedCategories(page, pageSize, search, signal) {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL;
-    const httpClient = new HttpClient({
-      baseURL: `${apiUrl}/categories/paged`,
-      page,
-      pageSize,
-      search,
-      signal,
-    });
-    return await httpClient.get('');
-  }
-
-  /**
    * @param {number} id
    * @param {AbortSignal} signal
    */

@@ -8,6 +8,7 @@ import NotFoundPage from '../components/common/NotFoundPage';
 import ProtectedRoute from './ProtectedRoute';
 import CategoryPage from '../features/categories/CategoryPage';
 import UserPage from '../features/users/UserPage';
+import CoursePage from '../features/courses/CoursePage';
 
 const Router = () => {
   return (
@@ -35,6 +36,14 @@ const Router = () => {
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <UserPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <CoursePage />
               </ProtectedRoute>
             }
           />
