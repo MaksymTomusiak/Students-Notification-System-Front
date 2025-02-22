@@ -6,18 +6,16 @@ const coursesReducer = (state = [], action) => {
       return [
         ...state,
         {
-          id: action.payload.id,
-          name: action.payload.name,
-          description: action.payload.description,
+          ...action.payload,
         },
       ];
+
     case CoursesCrudActionTypes.UPDATE_COURSE:
       return state.map((course) =>
         course.id === action.payload.id
           ? {
               ...course,
-              name: action.payload.name,
-              description: action.payload.description,
+              ...action.payload,
             }
           : course
       );

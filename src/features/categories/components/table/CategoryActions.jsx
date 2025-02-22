@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Space } from 'antd';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import EditCategoryModal from '../EditCategoryModal';
 import DeleteConfirmationModal from '../../../../components/common/DeleteConfirmationModal';
 
@@ -28,10 +29,15 @@ const CategoryActions = ({ category, onCategoryDelete, onCategoryUpdate }) => {
   return (
     <>
       <Space size="middle">
-        <Button onClick={openEditModal} type="primary">
+        <Button onClick={openEditModal} type="primary" icon={<EditOutlined />}>
           Edit
         </Button>
-        <Button onClick={openDeleteModal} type="primary" danger>
+        <Button
+          onClick={openDeleteModal}
+          type="primary"
+          danger
+          icon={<DeleteOutlined />}
+        >
           Delete
         </Button>
       </Space>

@@ -5,14 +5,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Input, Form, Card, message } from 'antd';
 
 const Login = () => {
-  const userInitial = {
-    email: '',
-    password: '',
-  };
-
   const navigate = useNavigate();
-  const [user, setUser] = useState(userInitial);
   const location = useLocation();
+  const [user, setUser] = useState({ email: '', password: '' });
 
   const handleUserChange = (event) => {
     const { name, value } = event.target;
@@ -32,12 +27,17 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(decoded));
 
         const params = new URLSearchParams(location.search);
-        const returnUrl = params.get('returnUrl') || '/';
+        let returnUrl = params.get('returnUrl') || '/';
 
-        navigate(returnUrl);
+        // Prevent redirecting back to login
+        if (returnUrl.includes('/login')) {
+          returnUrl = '/';
+        }
+
+        navigate(returnUrl, { replace: true });
       }
     } catch (error) {
-      message.error(error.response.data);
+      message.error(error.response?.data || 'Login failed');
     }
   };
 

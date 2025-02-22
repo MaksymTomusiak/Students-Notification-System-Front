@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Input, Button, Typography, message, Tabs, Table } from 'antd';
+import { Modal, Button, Typography, message, Tabs, Table } from 'antd';
 import BanReasonModal from './BanReasonModal';
 
 const { Text } = Typography;

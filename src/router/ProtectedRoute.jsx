@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const userJson = localStorage.getItem('user');
   const user = userJson ? JSON.parse(userJson) : null;
 
@@ -15,23 +16,23 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   useEffect(() => {
     if (!user || isTokenExpired()) {
       localStorage.removeItem('user');
-      navigate('/login');
+
+      if (location.pathname !== '/login') {
+        const returnUrl = encodeURIComponent(location.pathname);
+        navigate(`/login?returnUrl=${returnUrl}`);
+      }
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
 
   if (!user || isTokenExpired()) {
     return null;
   }
 
-  return (
-    <>
-      {allowedRoles?.includes(user?.role ?? '') ? (
-        children
-      ) : (
-        <h1>Unauthorized</h1>
-      )}
-    </>
-  );
+  if (!allowedRoles.includes(user.role)) {
+    return <h1>Unauthorized</h1>;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

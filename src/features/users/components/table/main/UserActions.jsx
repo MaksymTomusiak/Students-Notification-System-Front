@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Space, message } from 'antd';
+import { DeleteOutlined, InfoOutlined } from '@ant-design/icons';
 import DeleteConfirmationModal from '../../../../../components/common/DeleteConfirmationModal';
 import UserDetailsModal from '../details/UserDetailsModal';
 import { UserRegistersService } from '../../../services/user.registers.service';
@@ -78,10 +79,19 @@ const UserActions = ({ user, onUserDelete }) => {
   return (
     <>
       <Space size="middle">
-        <Button onClick={openDetailsModal} type="primary">
+        <Button
+          onClick={openDetailsModal}
+          type="primary"
+          icon={<InfoOutlined />}
+        >
           Details
         </Button>
-        <Button onClick={openDeleteModal} type="primary" danger>
+        <Button
+          onClick={openDeleteModal}
+          type="primary"
+          danger
+          icon={<DeleteOutlined />}
+        >
           Delete
         </Button>
       </Space>
