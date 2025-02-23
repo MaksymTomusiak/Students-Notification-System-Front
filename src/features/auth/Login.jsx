@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { UserService } from '../users/services/user.service';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -8,6 +8,27 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState({ email: '', password: '' });
+
+  useEffect(() => {
+    // Check for token in URL after Facebook redirect
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(decoded));
+
+        let returnUrl = params.get('returnUrl') || '/';
+        if (returnUrl.includes('/login')) {
+          returnUrl = '/';
+        }
+        navigate(returnUrl, { replace: true });
+      } catch (error) {
+        message.error('Failed to process Facebook login');
+      }
+    }
+  }, [location, navigate]);
 
   const handleUserChange = (event) => {
     const { name, value } = event.target;
@@ -20,7 +41,6 @@ const Login = () => {
   const handleSubmit = async () => {
     try {
       const response = await UserService.loginUser(user);
-
       if (response) {
         let decoded = jwtDecode(response);
         localStorage.setItem('token', response);
@@ -28,17 +48,19 @@ const Login = () => {
 
         const params = new URLSearchParams(location.search);
         let returnUrl = params.get('returnUrl') || '/';
-
-        // Prevent redirecting back to login
         if (returnUrl.includes('/login')) {
           returnUrl = '/';
         }
-
         navigate(returnUrl, { replace: true });
       }
     } catch (error) {
       message.error(error.response?.data || 'Login failed');
     }
+  };
+
+  const handleFacebookLogin = () => {
+    const returnUrl = `${window.location.origin}/login`; // Redirect back to login page
+    UserService.initiateFacebookLogin(returnUrl);
   };
 
   return (
@@ -75,6 +97,11 @@ const Login = () => {
         <Form.Item>
           <Button type="primary" htmlType="submit" block>
             Login
+          </Button>
+        </Form.Item>
+        <Form.Item>
+          <Button type="default" onClick={handleFacebookLogin} block>
+            Login with Facebook
           </Button>
         </Form.Item>
       </Form>

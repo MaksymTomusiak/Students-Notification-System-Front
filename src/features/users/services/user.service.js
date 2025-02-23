@@ -47,4 +47,14 @@ export class UserService {
     });
     return await httpClient.delete(`/delete/${id}`);
   }
+
+  static initiateFacebookLogin(returnUrl) {
+    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    // Construct the Facebook login URL with returnUrl as a query param
+    const facebookLoginUrl = `${apiUrl}/users/login/facebook?returnUrl=${encodeURIComponent(
+      returnUrl
+    )}`;
+    // Redirect the browser to the backend's Facebook login endpoint
+    window.location.href = facebookLoginUrl;
+  }
 }
