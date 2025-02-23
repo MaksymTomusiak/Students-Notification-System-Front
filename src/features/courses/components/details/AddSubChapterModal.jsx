@@ -1,22 +1,38 @@
-import React from 'react';
-import { Modal, Form, Input, Button } from 'antd';
+import React, { useState } from 'react';
+import { Modal, Form, Input, Button, message } from 'antd';
+import {
+  validateSubChapterName,
+  validateSubChapterContent,
+  validateEstimatedTime,
+} from '../../hooks/courseSubChaptersValidations';
+
+const { TextArea } = Input;
 
 const AddSubChapterModal = ({ open, onClose, onSave, chapterId }) => {
   const [form] = Form.useForm();
-  const handleSubmit = async () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (values) => {
+    setLoading(true);
     try {
-      const values = await form.validateFields();
       const newSubChapter = {
         chapterId: chapterId,
         name: values.name,
         content: values.content,
         estimateTime: parseInt(values.estimateTime),
       };
-      await onSave(newSubChapter);
-      form.resetFields();
-      onClose();
+      const success = await onSave(newSubChapter);
+      if (success) {
+        form.resetFields();
+        onClose();
+      } else {
+        message.error('Failed to add subchapter');
+      }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to add subchapter:', error);
+      message.error('Failed to add subchapter');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -25,37 +41,22 @@ const AddSubChapterModal = ({ open, onClose, onSave, chapterId }) => {
       title="Add New Subchapter"
       open={open}
       onCancel={onClose}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="submit" type="primary" onClick={handleSubmit}>
-          Add Subchapter
-        </Button>,
-      ]}
+      footer={null}
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item
           name="name"
           label="Subchapter Name"
-          rules={[
-            { required: true, message: 'Subchapter name is required' },
-            { min: 5, message: 'Name must be at least 5 characters' },
-            { max: 255, message: 'Name cannot exceed 255 characters' },
-          ]}
+          rules={[{ validator: validateSubChapterName }]}
         >
           <Input placeholder="Enter subchapter name" />
         </Form.Item>
         <Form.Item
           name="content"
           label="Content"
-          rules={[
-            { required: true, message: 'Content is required' },
-            { min: 5, message: 'Content must be at least 5 characters' },
-            { max: 2000, message: 'Content cannot exceed 2000 characters' },
-          ]}
+          rules={[{ validator: validateSubChapterContent }]}
         >
-          <Input.TextArea
+          <TextArea
             placeholder="Enter subchapter content"
             rows={4}
             showCount
@@ -66,12 +67,17 @@ const AddSubChapterModal = ({ open, onClose, onSave, chapterId }) => {
           name="estimateTime"
           label="Estimated Time (minutes)"
           normalize={(value) => (value ? Number(value) : value)}
-          rules={[
-            { required: true, message: 'Estimated time is required' },
-            { type: 'number', min: 1, message: 'Time must be positive' },
-          ]}
+          rules={[{ validator: validateEstimatedTime }]}
         >
           <Input type="number" placeholder="Enter time in minutes" min={1} />
+        </Form.Item>
+        <Form.Item style={{ textAlign: 'center' }}>
+          <Button onClick={onClose} style={{ marginRight: 8 }}>
+            Cancel
+          </Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Add Subchapter
+          </Button>
         </Form.Item>
       </Form>
     </Modal>

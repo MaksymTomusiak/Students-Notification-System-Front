@@ -5,7 +5,6 @@ import AddCategoryForm from '../AddCategoryForm';
 import categoriesReducer from '../../store/reducer';
 import { CategoriesCrudActionTypes } from '../../store/actions';
 import { CategoryService } from '../../services/category.service';
-import { useValidateCategory } from '../../hooks/useValidateCategory';
 import { useLoading } from '../../../../hooks/useLoading';
 
 const { Search } = Input;
@@ -15,7 +14,6 @@ const CategoryComponent = () => {
   const [filterQuery, setFilterQuery] = useState('');
 
   const { loading, turnOnLoading, turnOffLoading } = useLoading(false);
-  const { validateCategory } = useValidateCategory();
 
   useEffect(() => {
     let isMounted = true;
@@ -66,14 +64,6 @@ const CategoryComponent = () => {
 
   const memoizedSaveCategoryButtonClickCallback = useCallback(
     async (editCategory) => {
-      const validationError = validateCategory(
-        editCategory.name,
-        editCategory.description
-      );
-      if (validationError) {
-        message.error(validationError);
-        return false;
-      }
       try {
         const response = await CategoryService.updateCategory(editCategory);
         dispatch({ type: 'UPDATE_CATEGORY', payload: response });

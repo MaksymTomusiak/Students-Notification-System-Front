@@ -2,21 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Input, Button, Form, Flex } from 'antd';
 
 const EditCategoryModal = ({ open, onClose, category, onSave }) => {
-  const [name, setName] = useState('');
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (category) {
-      setName(category.name);
+    if (category && open) {
+      form.setFieldsValue({ name: category.name });
     }
-  }, [category, open]);
+  }, [category, open, form]);
 
-  const handleSave = async () => {
+  const handleSave = async (values) => {
     setLoading(true);
-    const success = await onSave({ ...category, name });
+    await form.validateFields();
+    const success = await onSave({ ...category, ...values });
     setLoading(false);
     if (success) {
       onClose();
+      form.resetFields();
     }
   };
 
@@ -28,16 +30,27 @@ const EditCategoryModal = ({ open, onClose, category, onSave }) => {
       footer={null}
       style={{ textAlign: 'center' }}
     >
-      <Form layout="vertical">
-        <Form.Item label="Name">
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+      <Form layout="vertical" form={form} onFinish={handleSave}>
+        <Form.Item
+          name="name"
+          label="Name"
+          rules={[
+            {
+              validator: (_, value) => value.trim() !== '',
+              message: 'Please enter name',
+            },
+            { min: 3, message: 'Name must be at least 3 characters' },
+            { max: 255, message: 'Name cannot exceed 255 characters' },
+          ]}
+        >
+          <Input placeholder="Name" />
         </Form.Item>
         <Form.Item>
           <Flex justify="center" gap="small">
             <Button onClick={onClose} style={{ marginRight: 8 }}>
               Cancel
             </Button>
-            <Button type="primary" onClick={handleSave} loading={loading}>
+            <Button type="primary" htmlType="submit" loading={loading}>
               Save
             </Button>
           </Flex>

@@ -1,56 +1,53 @@
-import React from 'react';
-import { Modal, Form, Input, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Form, Input, Button, message } from 'antd';
+import {
+  validateChapterName,
+  validateEstimatedTime,
+} from '../../hooks/courseChapterValidations';
 
 const UpdateChapterModal = ({ open, onClose, onSave, chapter }) => {
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
-    if (chapter) {
+  useEffect(() => {
+    if (chapter && open) {
       form.setFieldsValue({
         name: chapter.name,
         estimatedTime: chapter.estimatedTime,
       });
     }
-  }, [chapter, form]);
+  }, [chapter, open, form]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values) => {
+    setLoading(true);
     try {
-      const values = await form.validateFields();
       const updatedChapter = {
         ...chapter,
         name: values.name,
         estimatedTime: parseInt(values.estimatedTime),
       };
-      await onSave(updatedChapter);
-      onClose();
+      const success = await onSave(updatedChapter);
+      if (success) {
+        form.resetFields();
+        onClose();
+      } else {
+        message.error('Failed to update chapter');
+      }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to update chapter:', error);
+      message.error('Failed to update chapter');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Modal
-      title="Update Chapter"
-      open={open}
-      onCancel={onClose}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="submit" type="primary" onClick={handleSubmit}>
-          Update Chapter
-        </Button>,
-      ]}
-    >
-      <Form form={form} layout="vertical">
+    <Modal title="Update Chapter" open={open} onCancel={onClose} footer={null}>
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item
           name="name"
           label="Chapter Name"
-          rules={[
-            { required: true, message: 'Chapter name is required' },
-            { min: 5, message: 'Name must be at least 5 characters' },
-            { max: 255, message: 'Name cannot exceed 255 characters' },
-          ]}
+          rules={[{ validator: validateChapterName }]}
         >
           <Input placeholder="Enter chapter name" />
         </Form.Item>
@@ -58,12 +55,17 @@ const UpdateChapterModal = ({ open, onClose, onSave, chapter }) => {
           name="estimatedTime"
           label="Estimated Time (minutes)"
           normalize={(value) => (value ? Number(value) : value)}
-          rules={[
-            { required: true, message: 'Estimated time is required' },
-            { type: 'number', min: 1, message: 'Time must be positive' },
-          ]}
+          rules={[{ validator: validateEstimatedTime }]}
         >
           <Input type="number" placeholder="Enter time in minutes" min={1} />
+        </Form.Item>
+        <Form.Item style={{ textAlign: 'center' }}>
+          <Button onClick={onClose} style={{ marginRight: 8 }}>
+            Cancel
+          </Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Update Chapter
+          </Button>
         </Form.Item>
       </Form>
     </Modal>

@@ -1,72 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Button, message, DatePicker, Select } from 'antd';
-import { useValidateCourse } from '../../hooks/useValidateCourse';
+import React, { useState } from 'react';
+import { Modal, Input, Button, Form, DatePicker, Select, message } from 'antd';
+import {
+  validateCourseName,
+  validateImageUrl,
+  validateDescription,
+  validateLanguage,
+  validateRequirements,
+  validateDates,
+} from '../../hooks/courseValidations';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
+const { TextArea } = Input;
 
 const AddCourseModal = ({ open, onClose, onSave, categories }) => {
-  const userId = JSON.parse(localStorage.getItem('user')).sub;
-  const initialState = {
-    name: '',
-    imageUrl: '',
-    description: '',
-    creatorId: userId,
-    startDate: null,
-    finishDate: null,
-    language: '',
-    requirements: '',
-    categoriesIds: [],
-  };
-
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [newCourse, setNewCourse] = useState(initialState);
-  const { validateCourse } = useValidateCourse();
-
-  const turnOnLoading = () => {
-    setLoading(true);
-  };
-
-  const turnOffLoading = () => {
-    setLoading(false);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewCourse((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleDateChange = (dates) => {
-    if (dates) {
-      setNewCourse((prev) => ({
-        ...prev,
-        startDate: dates[0].toISOString(),
-        finishDate: dates[1].toISOString(),
-      }));
-    }
-  };
+  const userId = JSON.parse(localStorage.getItem('user')).sub;
 
   const disabledDate = (current) => {
-    return current && current < dayjs().startOf('day'); // Disable past dates
+    return current && current < dayjs().startOf('day');
   };
 
-  const handleCategoryChange = (values) => {
-    setNewCourse((prev) => ({ ...prev, categoriesIds: values }));
-  };
-
-  const handleSave = async () => {
-    const validationError = validateCourse(newCourse);
-    if (validationError) {
-      message.error(validationError);
-      return;
-    }
-
+  const handleSubmit = async (values) => {
     setLoading(true);
-    const success = await onSave(newCourse);
-    setLoading(false);
-    if (success) {
-      onClose();
-      setNewCourse(initialState);
+    try {
+      const courseData = {
+        ...values,
+        creatorId: userId,
+        startDate: values.dates[0].toISOString(),
+        finishDate: values.dates[1].toISOString(),
+      };
+      const success = await onSave(courseData);
+      if (success) {
+        message.success('Course added successfully');
+        form.resetFields();
+        onClose();
+      }
+    } catch (error) {
+      message.error('Failed to add course');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,61 +52,67 @@ const AddCourseModal = ({ open, onClose, onSave, categories }) => {
       footer={null}
       style={{ textAlign: 'center' }}
     >
-      <Form layout="vertical">
-        <Form.Item label="Course Name">
-          <Input
-            name="name"
-            value={newCourse.name}
-            onChange={handleInputChange}
-          />
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          name="name"
+          label="Course Name"
+          rules={[{ validator: validateCourseName }]}
+        >
+          <Input placeholder="Enter course name" />
         </Form.Item>
 
-        <Form.Item label="Image URL">
-          <Input
-            name="imageUrl"
-            value={newCourse.imageUrl}
-            onChange={handleInputChange}
-          />
+        <Form.Item
+          name="imageUrl"
+          label="Image URL"
+          rules={[{ validator: validateImageUrl }]}
+        >
+          <Input placeholder="Enter image URL" />
         </Form.Item>
 
-        <Form.Item label="Description">
-          <Input.TextArea
-            name="description"
-            value={newCourse.description}
-            onChange={handleInputChange}
-            rows={3}
-          />
+        <Form.Item
+          name="description"
+          label="Description"
+          rules={[{ validator: validateDescription }]}
+        >
+          <TextArea placeholder="Enter description" rows={3} />
         </Form.Item>
 
-        <Form.Item label="Language">
-          <Input
-            name="language"
-            value={newCourse.language}
-            onChange={handleInputChange}
-          />
+        <Form.Item
+          name="language"
+          label="Language"
+          rules={[{ validator: validateLanguage }]}
+        >
+          <Input placeholder="Enter language" />
         </Form.Item>
 
-        <Form.Item label="Requirements">
-          <Input.TextArea
-            name="requirements"
-            value={newCourse.requirements}
-            onChange={handleInputChange}
-            rows={3}
-          />
+        <Form.Item
+          name="requirements"
+          label="Requirements"
+          rules={[{ validator: validateRequirements }]}
+        >
+          <TextArea placeholder="Enter requirements" rows={3} />
         </Form.Item>
 
-        <Form.Item label="Course Duration">
-          <RangePicker
-            onChange={handleDateChange}
-            disabledDate={disabledDate}
-          />
+        <Form.Item
+          name="dates"
+          label="Course Duration"
+          rules={[{ validator: validateDates }]}
+        >
+          <RangePicker disabledDate={disabledDate} />
         </Form.Item>
 
-        <Form.Item label="Categories">
+        <Form.Item
+          name="categoriesIds"
+          label="Categories"
+          rules={[
+            {
+              required: false,
+              message: 'Please select at least one category',
+            },
+          ]}
+        >
           <Select
             mode="multiple"
-            value={newCourse.categoriesIds}
-            onChange={handleCategoryChange}
             options={categories.map((cat) => ({
               value: cat.id,
               label: cat.name,
@@ -145,7 +125,7 @@ const AddCourseModal = ({ open, onClose, onSave, categories }) => {
           <Button onClick={onClose} style={{ marginRight: 8 }}>
             Cancel
           </Button>
-          <Button type="primary" onClick={handleSave} loading={loading}>
+          <Button type="primary" htmlType="submit" loading={loading}>
             Save
           </Button>
         </Form.Item>

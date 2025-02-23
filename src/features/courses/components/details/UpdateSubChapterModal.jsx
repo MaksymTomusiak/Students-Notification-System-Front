@@ -1,32 +1,48 @@
-import React from 'react';
-import { Modal, Form, Input, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Form, Input, Button, message } from 'antd';
+import {
+  validateSubChapterName,
+  validateSubChapterContent,
+  validateEstimatedTime,
+} from '../../hooks/courseSubChaptersValidations';
+
+const { TextArea } = Input;
 
 const UpdateSubChapterModal = ({ open, onClose, onSave, subChapter }) => {
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
-    if (subChapter) {
+  useEffect(() => {
+    if (subChapter && open) {
       form.setFieldsValue({
         name: subChapter.name,
         content: subChapter.content,
         estimateTime: subChapter.estimateTime,
       });
     }
-  }, [subChapter, form]);
+  }, [subChapter, open, form]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values) => {
+    setLoading(true);
     try {
-      const values = await form.validateFields();
       const updatedSubChapter = {
         ...subChapter,
         name: values.name,
         content: values.content,
         estimateTime: parseInt(values.estimateTime),
       };
-      await onSave(updatedSubChapter);
-      onClose();
+      const success = await onSave(updatedSubChapter);
+      if (success) {
+        form.resetFields();
+        onClose();
+      } else {
+        message.error('Failed to update subchapter');
+      }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to update subchapter:', error);
+      message.error('Failed to update subchapter');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,37 +51,22 @@ const UpdateSubChapterModal = ({ open, onClose, onSave, subChapter }) => {
       title="Update Subchapter"
       open={open}
       onCancel={onClose}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="submit" type="primary" onClick={handleSubmit}>
-          Update Subchapter
-        </Button>,
-      ]}
+      footer={null} // Removed footer to match other modals
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item
           name="name"
           label="Subchapter Name"
-          rules={[
-            { required: true, message: 'Subchapter name is required' },
-            { min: 5, message: 'Name must be at least 5 characters' },
-            { max: 255, message: 'Name cannot exceed 255 characters' },
-          ]}
+          rules={[{ validator: validateSubChapterName }]}
         >
           <Input placeholder="Enter subchapter name" />
         </Form.Item>
         <Form.Item
           name="content"
           label="Content"
-          rules={[
-            { required: true, message: 'Content is required' },
-            { min: 5, message: 'Content must be at least 5 characters' },
-            { max: 2000, message: 'Content cannot exceed 2000 characters' },
-          ]}
+          rules={[{ validator: validateSubChapterContent }]}
         >
-          <Input.TextArea
+          <TextArea
             placeholder="Enter subchapter content"
             rows={4}
             showCount
@@ -76,12 +77,17 @@ const UpdateSubChapterModal = ({ open, onClose, onSave, subChapter }) => {
           name="estimateTime"
           label="Estimated Time (minutes)"
           normalize={(value) => (value ? Number(value) : value)}
-          rules={[
-            { required: true, message: 'Estimated time is required' },
-            { type: 'number', min: 1, message: 'Time must be positive' },
-          ]}
+          rules={[{ validator: validateEstimatedTime }]}
         >
           <Input type="number" placeholder="Enter time in minutes" min={1} />
+        </Form.Item>
+        <Form.Item style={{ textAlign: 'center' }}>
+          <Button onClick={onClose} style={{ marginRight: 8 }}>
+            Cancel
+          </Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Update Subchapter
+          </Button>
         </Form.Item>
       </Form>
     </Modal>

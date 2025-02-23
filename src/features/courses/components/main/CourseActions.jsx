@@ -32,8 +32,8 @@ const CourseActions = ({
   const [loading, setLoading] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const controllerRef = useRef(null); // Manage AbortController
-  const isFetchingRef = useRef(false); // Track if fetch is in progress
+  const controllerRef = useRef(null);
+  const isFetchingRef = useRef(false);
 
   const fetchCourseDetails = useCallback(async () => {
     if (isFetchingRef.current) {
@@ -75,8 +75,10 @@ const CourseActions = ({
       const response = await CourseChaptersService.createChapter(newChapter);
       setChapters((prev) => [...prev, response]);
       message.success('Chapter added successfully');
+      return true;
     } catch (error) {
       message.error('Failed to add chapter');
+      return false;
     }
   }, []);
 
@@ -87,58 +89,59 @@ const CourseActions = ({
       );
       setChapters((prev) =>
         prev.map((c) =>
-          c.id === newSubChapter.courseChapterId
+          c.id === newSubChapter.chapterId
             ? { ...c, subChapters: [...(c.subChapters || []), response] }
             : c
         )
       );
       message.success('Subchapter added successfully');
+      return true;
     } catch (error) {
       if (error.response?.status === 409) {
         message.error(error.response.data);
-        return;
+      } else {
+        message.error('Failed to add subchapter');
       }
-      message.error('Failed to add subchapter');
+      return false;
     }
   }, []);
 
-  const handleChapterUpdate = useCallback(async (chapterId, updatedChapter) => {
+  const handleChapterUpdate = useCallback(async (updatedChapter) => {
     try {
       const response = await CourseChaptersService.updateChapter(
-        chapterId,
         updatedChapter
       );
       setChapters((prev) =>
-        prev.map((c) => (c.id === chapterId ? response : c))
+        prev.map((c) => (c.id === updatedChapter.id ? response : c))
       );
       message.success('Chapter updated successfully');
+      return true;
     } catch (error) {
       message.error('Failed to update chapter');
+      return false;
     }
   }, []);
 
-  const handleSubChapterUpdate = useCallback(
-    async (subChapterId, updatedSubChapter) => {
-      try {
-        const response = await CourseSubChaptersService.updateSubChapter(
-          subChapterId,
-          updatedSubChapter
-        );
-        setChapters((prev) =>
-          prev.map((c) => ({
-            ...c,
-            subChapters: c.subChapters?.map((sc) =>
-              sc.id === subChapterId ? response : sc
-            ),
-          }))
-        );
-        message.success('Subchapter updated successfully');
-      } catch (error) {
-        message.error('Failed to update subchapter');
-      }
-    },
-    []
-  );
+  const handleSubChapterUpdate = useCallback(async (updatedSubChapter) => {
+    try {
+      const response = await CourseSubChaptersService.updateSubChapter(
+        updatedSubChapter
+      );
+      setChapters((prev) =>
+        prev.map((c) => ({
+          ...c,
+          subChapters: c.subChapters?.map((sc) =>
+            sc.id === updatedSubChapter.id ? response : sc
+          ),
+        }))
+      );
+      message.success('Subchapter updated successfully');
+      return true;
+    } catch (error) {
+      message.error('Failed to update subchapter');
+      return false;
+    }
+  }, []);
 
   const handleSubChapterDelete = useCallback(async (subChapterId) => {
     try {
@@ -205,6 +208,7 @@ const CourseActions = ({
       if (success) {
         closeEditModal();
       }
+      return success; // Ensure this returns the success value
     },
     [onCourseUpdate]
   );

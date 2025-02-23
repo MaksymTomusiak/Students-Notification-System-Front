@@ -1,61 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Button, Form, Flex, DatePicker, Select } from 'antd';
-import { useValidateCourse } from '../../hooks/useValidateCourse';
+import {
+  Modal,
+  Input,
+  Button,
+  Form,
+  Flex,
+  DatePicker,
+  Select,
+  message,
+} from 'antd';
+import {
+  validateCourseName,
+  validateImageUrl,
+  validateDescription,
+  validateLanguage,
+  validateRequirements,
+  validateDates,
+} from '../../hooks/courseValidations';
 import dayjs from 'dayjs';
 
+const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 
 const EditCourseModal = ({ open, onClose, course, onSave, categories }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    imageUrl: '',
-    description: '',
-    startDate: null,
-    finishDate: null,
-    language: '',
-    requirements: '',
-    categoriesIds: [],
-  });
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { validateCourse } = useValidateCourse();
 
   useEffect(() => {
-    if (course) {
-      setFormData({
-        id: course.id || null,
+    if (course && open) {
+      form.setFieldsValue({
         name: course.name || '',
         imageUrl: course.imageUrl || '',
         description: course.description || '',
-        startDate: course.startDate ? dayjs(course.startDate) : null,
-        finishDate: course.finishDate ? dayjs(course.finishDate) : null,
         language: course.language || '',
         requirements: course.requirements || '',
-        categoriesIds: course.categories.map((category) => category.id) || [],
+        dates:
+          course.startDate && course.finishDate
+            ? [dayjs(course.startDate), dayjs(course.finishDate)]
+            : null,
+        categoriesIds: course.categories?.map((category) => category.id) || [],
       });
     }
-  }, [open]);
+  }, [course, open, form]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleDateChange = (field, date) => {
-    setFormData({ ...formData, [field]: date });
-  };
-
-  const handleCategoryChange = (categoriesIds) => {
-    setFormData({ ...formData, categoriesIds });
-  };
-
-  const handleSave = async () => {
-    const validationError = validateCourse(formData);
-    if (validationError) {
-      message.error(validationError);
-      return;
-    }
+  const handleSubmit = async (values) => {
     setLoading(true);
-    await onSave({ ...course, ...formData });
-    setLoading(false);
+    try {
+      const courseData = {
+        ...course, // Preserve unchanged fields like id
+        ...values,
+        startDate: values.dates[0].toISOString(),
+        finishDate: values.dates[1].toISOString(),
+      };
+      const success = await onSave(courseData);
+      if (success) {
+        message.success('Course updated successfully');
+        form.resetFields();
+        onClose();
+      }
+    } catch (error) {
+      message.error('Failed to update course');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,69 +73,79 @@ const EditCourseModal = ({ open, onClose, course, onSave, categories }) => {
       footer={null}
       centered
     >
-      <Form layout="vertical">
-        <Form.Item label="Course Name">
-          <Input name="name" value={formData.name} onChange={handleChange} />
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          name="name"
+          label="Course Name"
+          rules={[{ validator: validateCourseName }]}
+        >
+          <Input placeholder="Enter course name" />
         </Form.Item>
-        <Form.Item label="Image URL">
-          <Input
-            name="imageUrl"
-            value={formData.imageUrl}
-            onChange={handleChange}
-          />
+
+        <Form.Item
+          name="imageUrl"
+          label="Image URL"
+          rules={[{ validator: validateImageUrl }]}
+        >
+          <Input placeholder="Enter image URL" />
         </Form.Item>
-        <Form.Item label="Description">
-          <TextArea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-          />
+
+        <Form.Item
+          name="description"
+          label="Description"
+          rules={[{ validator: validateDescription }]}
+        >
+          <TextArea placeholder="Enter description" rows={3} />
         </Form.Item>
-        <Form.Item label="Start Date">
-          <DatePicker
-            value={formData.startDate}
-            onChange={(date) => handleDateChange('startDate', date)}
-          />
+
+        <Form.Item
+          name="language"
+          label="Language"
+          rules={[{ validator: validateLanguage }]}
+        >
+          <Input placeholder="Enter language" />
         </Form.Item>
-        <Form.Item label="Finish Date">
-          <DatePicker
-            value={formData.finishDate}
-            onChange={(date) => handleDateChange('finishDate', date)}
-          />
+
+        <Form.Item
+          name="requirements"
+          label="Requirements"
+          rules={[{ validator: validateRequirements }]}
+        >
+          <TextArea placeholder="Enter requirements" rows={3} />
         </Form.Item>
-        <Form.Item label="Language">
-          <Input
-            name="language"
-            value={formData.language}
-            onChange={handleChange}
-          />
+
+        <Form.Item
+          name="dates"
+          label="Course Duration"
+          rules={[{ validator: validateDates }]}
+        >
+          <RangePicker />
         </Form.Item>
-        <Form.Item label="Requirements">
-          <TextArea
-            name="requirements"
-            value={formData.requirements}
-            onChange={handleChange}
-          />
-        </Form.Item>
-        <Form.Item label="Categories">
+
+        <Form.Item
+          name="categoriesIds"
+          label="Categories"
+          rules={[
+            {
+              required: false, // Optional field; set to true if required
+              message: 'Please select at least one category',
+            },
+          ]}
+        >
           <Select
             mode="multiple"
+            options={categories.map((cat) => ({
+              value: cat.id,
+              label: cat.name,
+            }))}
             placeholder="Select categories"
-            value={formData.categoriesIds}
-            onChange={handleCategoryChange}
-            style={{ width: '100%' }}
-          >
-            {categories.map((category) => (
-              <Select.Option key={category.id} value={category.id}>
-                {category.name}
-              </Select.Option>
-            ))}
-          </Select>
+          />
         </Form.Item>
+
         <Form.Item>
           <Flex justify="center" gap="small">
             <Button onClick={onClose}>Cancel</Button>
-            <Button type="primary" onClick={handleSave} loading={loading}>
+            <Button type="primary" htmlType="submit" loading={loading}>
               Save
             </Button>
           </Flex>

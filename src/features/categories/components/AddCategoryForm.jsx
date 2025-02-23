@@ -1,23 +1,13 @@
 import { useState } from 'react';
 import { Form, Input, Button, Flex, message } from 'antd';
 import { CategoryService } from '../services/category.service';
-import { useValidateCategory } from '../hooks/useValidateCategory';
+import validateCategoryName from '../hooks/categoryValidations';
 
 const AddCategoryForm = ({ onAddCategory }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  const { validateCategory } = useValidateCategory();
-
   const onSubmit = async (values) => {
-    const { name } = values;
-
-    const validationError = validateCategory(name);
-    if (validationError) {
-      message.error(validationError);
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await CategoryService.createCategory(values);
@@ -50,7 +40,11 @@ const AddCategoryForm = ({ onAddCategory }) => {
       >
         <Form.Item
           name="name"
-          rules={[{ required: true, message: 'Please enter name' }]}
+          rules={[
+            {
+              validator: validateCategoryName,
+            },
+          ]}
         >
           <Input placeholder="Name" />
         </Form.Item>
