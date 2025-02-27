@@ -76,10 +76,11 @@ function CourseComponent() {
         type: CoursesCrudActionTypes.CREATE_COURSE,
         payload: response,
       });
-      message.success('Course created successfully');
       closeAddModal();
+      return true;
     } catch (error) {
       message.error(error.response?.data || error.message);
+      return false;
     } finally {
       turnOffLoading();
     }

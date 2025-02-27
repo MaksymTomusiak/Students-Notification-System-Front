@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Modal, Button, Typography, Card, Tabs, Flex, Collapse } from 'antd';
+import {
+  Modal,
+  Button,
+  Typography,
+  Card,
+  Tabs,
+  Flex,
+  Collapse,
+  Table,
+} from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 import ReorderChaptersModal from './ReorderChaptersModal';
 import ReorderSubChaptersModal from './ReorderSubChaptersModal';
@@ -27,7 +36,9 @@ const CourseDetailsModal = ({
   onSubChapterUpdate,
   onSubChapterDelete,
   onChaptersReorder,
-  onSubChaptersReorder, // New prop for subchapter reordering
+  onSubChaptersReorder,
+  feedbackPagination, // Receive feedbacks pagination state
+  onFeedbackPaginationChange, // Receive callback for feedbacks pagination
 }) => {
   const [isReorderModalOpen, setReorderModalOpen] = useState(false);
   const [isSubReorderModalOpen, setSubReorderModalOpen] = useState(false);
@@ -43,58 +54,81 @@ const CourseDetailsModal = ({
     setSubReorderModalOpen(true);
   };
 
+  const handleFeedbackTableChange = (newPagination) => {
+    onFeedbackPaginationChange(newPagination); // Update pagination in CourseActions, which will re-fetch data
+  };
+
+  const feedbackColumns = [
+    {
+      title: 'User Name',
+      dataIndex: ['user', 'userName'],
+      key: 'userName',
+      align: 'center',
+    },
+    {
+      title: 'Content',
+      dataIndex: 'content',
+      key: 'content',
+      render: (text) => (
+        <Text>{text.length > 250 ? text.substring(0, 250) + '...' : text}</Text>
+      ),
+      align: 'center',
+    },
+    {
+      title: 'Rating',
+      dataIndex: 'rating',
+      key: 'rating',
+      render: (rating) => (
+        <Text strong style={{ color: '#faad14' }}>
+          {rating}/10
+        </Text>
+      ),
+      align: 'center',
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => (
+        <Text type="secondary" style={{ fontSize: '12px' }}>
+          {new Date(date).toLocaleDateString('en-GB').split('/').join('-')}
+        </Text>
+      ),
+      align: 'center',
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'center',
+      render: (_, feedback) => (
+        <Button
+          type="primary"
+          danger
+          onClick={() => onFeedbackDelete(feedback.id)}
+        >
+          Delete
+        </Button>
+      ),
+    },
+  ];
+
   const feedbackTab = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {feedbacks.length > 0 ? (
-        feedbacks.map((feedback) => (
-          <Card
-            key={feedback.id}
-            style={{
-              background: '#f9f9f9',
-              borderRadius: '8px',
-              padding: '16px',
-            }}
-          >
-            <Flex
-              justify="space-between"
-              align="center"
-              style={{ marginBottom: '8px' }}
-            >
-              <Text strong>{feedback.user.userName}</Text>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {new Date(feedback.createdAt)
-                  .toLocaleDateString('en-GB')
-                  .split('/')
-                  .join('-')}
-              </Text>
-            </Flex>
-            <Text>
-              {feedback.content.length > 250
-                ? feedback.content.substring(0, 250) + '...'
-                : feedback.content}
-            </Text>
-            <Flex
-              justify="space-between"
-              align="center"
-              style={{ marginTop: '12px' }}
-            >
-              <Text strong style={{ color: '#faad14' }}>
-                Rating: {feedback.rating}/10
-              </Text>
-              <Button
-                type="primary"
-                danger
-                onClick={() => onFeedbackDelete(feedback.id)}
-              >
-                Delete
-              </Button>
-            </Flex>
-          </Card>
-        ))
-      ) : (
-        <Text type="secondary">No feedback available.</Text>
-      )}
-    </div>
+    <Table
+      dataSource={feedbacks}
+      columns={feedbackColumns}
+      rowKey="id"
+      pagination={{
+        current: feedbackPagination.current,
+        pageSize: feedbackPagination.pageSize,
+        total: feedbackPagination.total,
+        showSizeChanger: true,
+        onChange: handleFeedbackTableChange,
+      }}
+      loading={false} // Loading is handled by CourseActions
+      scroll={{ x: true }}
+      tableLayout="auto"
+      style={{ width: '100%' }}
+    />
   );
 
   const chaptersTab = (

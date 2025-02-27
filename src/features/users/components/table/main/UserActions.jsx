@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Space, message } from 'antd';
 import { DeleteOutlined, InfoOutlined } from '@ant-design/icons';
 import DeleteConfirmationModal from '../../../../../components/common/DeleteConfirmationModal';
@@ -9,20 +9,48 @@ import { UserBansService } from '../../../services/user.bans.service';
 const UserActions = ({ user, onUserDelete }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [registers, setRegisters] = useState(null);
-  const [bans, setBans] = useState(null);
+  const [registers, setRegisters] = useState([]);
+  const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [registerPagination, setRegisterPagination] = useState({
+    current: 1,
+    pageSize: 3,
+    total: 0, // For registers
+  });
+  const [banPagination, setBanPagination] = useState({
+    current: 1,
+    pageSize: 3,
+    total: 0, // For bans
+  });
   const controller = new AbortController();
 
   const fetchUserDetails = async () => {
     setLoading(true);
     try {
       const [registersResponse, bansResponse] = await Promise.all([
-        UserRegistersService.getUserRegisters(user.id, controller.signal),
-        UserBansService.getUserBans(user.id, controller.signal),
+        UserRegistersService.getUserRegisters(
+          user.id,
+          registerPagination.current,
+          registerPagination.pageSize,
+          controller.signal
+        ),
+        UserBansService.getUserBans(
+          user.id,
+          banPagination.current,
+          banPagination.pageSize,
+          controller.signal
+        ),
       ]);
-      setRegisters(registersResponse);
-      setBans(bansResponse);
+      setRegisters(registersResponse.items || []);
+      setBans(bansResponse.items || []);
+      setRegisterPagination((prev) => ({
+        ...prev,
+        total: registersResponse.totalCount || 0,
+      }));
+      setBanPagination((prev) => ({
+        ...prev,
+        total: bansResponse.totalCount || 0,
+      }));
     } catch (error) {
       console.error('Error fetching user details:', error);
       message.error('Failed to fetch user details');
@@ -47,7 +75,6 @@ const UserActions = ({ user, onUserDelete }) => {
   const handleDelete = async () => {
     try {
       await onUserDelete(user.id);
-      message.success('User deleted successfully');
       closeDeleteModal();
     } catch (error) {
       message.error('Failed to delete user');
@@ -58,7 +85,7 @@ const UserActions = ({ user, onUserDelete }) => {
     try {
       await UserBansService.banUser(banData);
       message.success('User banned successfully');
-      await fetchUserDetails();
+      await fetchUserDetails(); // Refresh both registers and bans, maintaining pagination
     } catch (error) {
       console.error('Error banning user:', error);
       message.error('Failed to ban user');
@@ -69,11 +96,21 @@ const UserActions = ({ user, onUserDelete }) => {
     try {
       await UserBansService.unbanUser(banId);
       message.success('User unbanned successfully');
-      await fetchUserDetails();
+      await fetchUserDetails(); // Refresh both registers and bans, maintaining pagination
     } catch (error) {
       console.error('Error unbanning user:', error);
       message.error('Failed to unban user');
     }
+  };
+
+  const handleRegisterPaginationChange = (newPagination) => {
+    setRegisterPagination(newPagination);
+    fetchUserDetails(); // Re-fetch with new pagination for registers
+  };
+
+  const handleBanPaginationChange = (newPagination) => {
+    setBanPagination(newPagination);
+    fetchUserDetails(); // Re-fetch with new pagination for bans
   };
 
   return (
@@ -83,6 +120,7 @@ const UserActions = ({ user, onUserDelete }) => {
           onClick={openDetailsModal}
           type="primary"
           icon={<InfoOutlined />}
+          loading={loading}
         >
           Details
         </Button>
@@ -91,6 +129,7 @@ const UserActions = ({ user, onUserDelete }) => {
           type="primary"
           danger
           icon={<DeleteOutlined />}
+          loading={loading}
         >
           Delete
         </Button>
@@ -114,6 +153,10 @@ const UserActions = ({ user, onUserDelete }) => {
         userId={user.id}
         onBanUser={handleBanUser}
         onUnbanUser={handleUnbanUser}
+        registerPagination={registerPagination} // Pass registers pagination
+        banPagination={banPagination} // Pass bans pagination
+        onRegisterPaginationChange={handleRegisterPaginationChange} // Pass callback for registers
+        onBanPaginationChange={handleBanPaginationChange} // Pass callback for bans
       />
     </>
   );

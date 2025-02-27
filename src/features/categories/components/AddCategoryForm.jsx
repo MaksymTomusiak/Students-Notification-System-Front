@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Form, Input, Button, Flex, message } from 'antd';
-import { CategoryService } from '../services/category.service';
 import validateCategoryName from '../hooks/categoryValidations';
 
 const AddCategoryForm = ({ onAddCategory }) => {
@@ -10,9 +9,8 @@ const AddCategoryForm = ({ onAddCategory }) => {
   const onSubmit = async (values) => {
     setLoading(true);
     try {
-      const response = await CategoryService.createCategory(values);
-      message.success('Category created successfully');
-      onAddCategory(response);
+      const category = { ...values };
+      onAddCategory(category);
       form.resetFields();
     } catch (error) {
       if (error.response?.status === 409) {

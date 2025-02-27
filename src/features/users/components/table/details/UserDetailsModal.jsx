@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button, Typography, message, Tabs, Table } from 'antd';
 import BanReasonModal from './BanReasonModal';
 
@@ -13,6 +13,11 @@ const UserDetailsModal = ({
   onBanUser,
   onUnbanUser,
   userId,
+  loading, // Receive loading state
+  registerPagination, // Receive registers pagination state
+  banPagination, // Receive bans pagination state
+  onRegisterPaginationChange, // Receive callback for registers pagination
+  onBanPaginationChange, // Receive callback for bans pagination
 }) => {
   const [isBanModalOpen, setBanModalOpen] = useState(false);
   const [banReason, setBanReason] = useState('');
@@ -45,28 +50,43 @@ const UserDetailsModal = ({
 
   const handleReasonChange = (e) => setBanReason(e.target.value);
 
+  const handleRegisterTableChange = (newPagination) => {
+    onRegisterPaginationChange(newPagination); // Update registers pagination in UserActions
+  };
+
+  const handleBanTableChange = (newPagination) => {
+    onBanPaginationChange(newPagination); // Update bans pagination in UserActions
+  };
+
   const registerColumns = [
     {
       title: 'Register ID',
       dataIndex: 'id',
       key: 'id',
+      align: 'center',
     },
     {
       title: 'Course Name',
       key: 'courseName',
-      render: (_, record) => <Text>{record.course.name}</Text>,
+      render: (_, record) => (
+        <Text style={{ textAlign: 'center', display: 'block' }}>
+          {record.course.name}
+        </Text>
+      ),
+      align: 'center',
     },
     {
       title: 'Registered At',
       key: 'registeredAt',
       render: (_, record) => (
-        <Text>
+        <Text style={{ textAlign: 'center', display: 'block' }}>
           {new Date(record.registeredAt)
             .toLocaleDateString('en-GB')
             .split('/')
             .join('-')}
         </Text>
       ),
+      align: 'center',
     },
     {
       title: 'Action',
@@ -75,11 +95,14 @@ const UserDetailsModal = ({
         <Button
           type="primary"
           danger
+          style={{ display: 'block', margin: '0 auto' }}
           onClick={() => handleBanClick(record.course.id)}
+          loading={loading}
         >
           Ban
         </Button>
       ),
+      align: 'center',
     },
   ];
 
@@ -88,37 +111,51 @@ const UserDetailsModal = ({
       title: 'Ban ID',
       dataIndex: 'id',
       key: 'id',
+      align: 'center',
     },
     {
       title: 'Course Name',
       key: 'courseName',
-      render: (_, record) => <Text>{record.course.name}</Text>,
+      render: (_, record) => (
+        <Text style={{ textAlign: 'center', display: 'block' }}>
+          {record.course.name}
+        </Text>
+      ),
+      align: 'center',
     },
     {
       title: 'Reason',
       dataIndex: 'reason',
       key: 'reason',
+      align: 'center',
     },
     {
       title: 'Banned At',
       key: 'bannedAt',
       render: (_, record) => (
-        <Text>
+        <Text style={{ textAlign: 'center', display: 'block' }}>
           {new Date(record.bannedAt)
             .toLocaleDateString('en-GB')
             .split('/')
             .join('-')}
         </Text>
       ),
+      align: 'center',
     },
     {
       title: 'Action',
       key: 'action',
       render: (_, record) => (
-        <Button type="primary" onClick={() => onUnbanUser(record.id)}>
+        <Button
+          type="primary"
+          style={{ display: 'block', margin: '0 auto' }}
+          onClick={() => onUnbanUser(record.id)}
+          loading={loading}
+        >
           Unban
         </Button>
       ),
+      align: 'center',
     },
   ];
 
@@ -143,7 +180,17 @@ const UserDetailsModal = ({
                   dataSource={registers}
                   columns={registerColumns}
                   rowKey="id"
-                  pagination={false}
+                  pagination={{
+                    current: registerPagination.current,
+                    pageSize: registerPagination.pageSize,
+                    total: registerPagination.total,
+                    showSizeChanger: true,
+                    onChange: handleRegisterTableChange,
+                  }}
+                  loading={loading}
+                  scroll={{ x: true }}
+                  tableLayout="auto"
+                  style={{ width: '100%' }}
                 />
               ),
             },
@@ -155,7 +202,17 @@ const UserDetailsModal = ({
                   dataSource={bans}
                   columns={banColumns}
                   rowKey="id"
-                  pagination={false}
+                  pagination={{
+                    current: banPagination.current,
+                    pageSize: banPagination.pageSize,
+                    total: banPagination.total,
+                    showSizeChanger: true,
+                    onChange: handleBanTableChange,
+                  }}
+                  loading={loading}
+                  scroll={{ x: true }}
+                  tableLayout="auto"
+                  style={{ width: '100%' }}
                 />
               ),
             },

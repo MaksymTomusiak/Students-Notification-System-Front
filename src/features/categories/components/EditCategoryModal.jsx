@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Button, Form, Flex } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Modal, Input, Button, Form, Flex, message } from 'antd';
 
 const EditCategoryModal = ({ open, onClose, category, onSave }) => {
   const [form] = Form.useForm();
@@ -13,12 +13,24 @@ const EditCategoryModal = ({ open, onClose, category, onSave }) => {
 
   const handleSave = async (values) => {
     setLoading(true);
-    await form.validateFields();
-    const success = await onSave({ ...category, ...values });
-    setLoading(false);
-    if (success) {
-      onClose();
-      form.resetFields();
+    try {
+      await form.validateFields();
+      const updatedCategory = {
+        id: category.id,
+        name: values.name.trim(),
+      };
+      const success = await onSave(updatedCategory);
+      if (success) {
+        onClose();
+        form.resetFields();
+      }
+    } catch (error) {
+      console.error('Validation or save error:', error);
+      message.error(
+        'Failed to update category: ' + (error.message || 'Unknown error')
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,14 +42,25 @@ const EditCategoryModal = ({ open, onClose, category, onSave }) => {
       footer={null}
       style={{ textAlign: 'center' }}
     >
-      <Form layout="vertical" form={form} onFinish={handleSave}>
+      <Form
+        layout="vertical"
+        form={form}
+        onFinish={handleSave}
+        onFinishFailed={(errorInfo) => {
+          message.error('Please fix the form errors before submitting.');
+        }}
+      >
         <Form.Item
           name="name"
           label="Name"
           rules={[
             {
-              validator: (_, value) => value.trim() !== '',
-              message: 'Please enter name',
+              validator: (_, value) => {
+                if (!value || value.trim() === '') {
+                  return Promise.reject('Please enter a name');
+                }
+                return Promise.resolve();
+              },
             },
             { min: 3, message: 'Name must be at least 3 characters' },
             { max: 255, message: 'Name cannot exceed 255 characters' },

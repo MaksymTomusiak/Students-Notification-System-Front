@@ -2,7 +2,7 @@ import CourseComponent from './components/CourseComponent';
 
 const CoursePage = () => {
   return (
-    <div>
+    <div style={{ paddingTop: '64px' }}>
       <h1>Courses List</h1>
       <CourseComponent />
     </div>

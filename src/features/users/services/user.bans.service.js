@@ -1,14 +1,15 @@
 import { HttpClient } from '../../../utils/http/HttpClient';
 
 export class UserBansService {
-  static async getUserBans(id, signal) {
+  static async getUserBans(userId, page = 1, pageSize = 10, signal) {
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     const httpClient = new HttpClient({
       baseURL: `${apiUrl}/bans`,
-      timeout: 10000,
       signal,
     });
-    return await httpClient.get('/by-user/' + id);
+    return await httpClient.get(
+      `/by-user/${userId}?page=${page}&pageSize=${pageSize}`
+    );
   }
 
   static async banUser(ban, signal) {

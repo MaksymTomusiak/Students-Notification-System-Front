@@ -7,11 +7,12 @@ import {
   Flex,
   DatePicker,
   Select,
+  Upload,
   message,
 } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import {
   validateCourseName,
-  validateImageUrl,
   validateDescription,
   validateLanguage,
   validateRequirements,
@@ -30,7 +31,6 @@ const EditCourseModal = ({ open, onClose, course, onSave, categories }) => {
     if (course && open) {
       form.setFieldsValue({
         name: course.name || '',
-        imageUrl: course.imageUrl || '',
         description: course.description || '',
         language: course.language || '',
         requirements: course.requirements || '',
@@ -48,28 +48,41 @@ const EditCourseModal = ({ open, onClose, course, onSave, categories }) => {
     try {
       const courseData = {
         ...course, // Preserve unchanged fields like id
-        ...values,
+        Name: values.name,
+        Description: values.description,
+        Language: values.language,
+        Requirements: values.requirements,
         startDate: values.dates[0].toISOString(),
         finishDate: values.dates[1].toISOString(),
+        CategoriesIds: values.categoriesIds || [],
+        Image:
+          values.image && values.image[0]?.originFileObj
+            ? values.image[0].originFileObj
+            : null, // Include the file object directly
       };
-      const success = await onSave(courseData);
+
+      const success = await onSave(courseData); // Pass the object to onSave, maintaining the structure
       if (success) {
-        message.success('Course updated successfully');
         form.resetFields();
         onClose();
       }
     } catch (error) {
-      message.error('Failed to update course');
+      message.error('Failed to update course: ' + (error.message || error));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    onClose();
   };
 
   return (
     <Modal
       title="Edit Course"
       open={open}
-      onCancel={onClose}
+      onCancel={handleCancel}
       footer={null}
       centered
     >
@@ -83,11 +96,46 @@ const EditCourseModal = ({ open, onClose, course, onSave, categories }) => {
         </Form.Item>
 
         <Form.Item
-          name="imageUrl"
-          label="Image URL"
-          rules={[{ validator: validateImageUrl }]}
+          name="image"
+          label="Image"
+          valuePropName="file"
+          getValueFromEvent={(e) => {
+            if (Array.isArray(e)) {
+              return e;
+            }
+            return e && e.fileList;
+          }}
+          rules={[
+            {
+              validator: async (_, value) => {
+                if (!value || value.length === 0) {
+                  return Promise.resolve();
+                }
+                const file = value[0]?.originFileObj;
+                if (file) {
+                  const isImage = file.type.startsWith('image/');
+                  if (!isImage) {
+                    return Promise.reject('File must be an image');
+                  }
+                  const isLt2M = file.size / 1024 / 1024 < 2; // Limit to 2MB
+                  if (!isLt2M) {
+                    return Promise.reject('Image must be smaller than 2MB');
+                  }
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
         >
-          <Input placeholder="Enter image URL" />
+          <Upload
+            name="image"
+            listType="picture"
+            maxCount={1}
+            beforeUpload={() => false} // Prevent automatic upload
+            accept="image/*"
+          >
+            <Button icon={<UploadOutlined />}>Upload Image</Button>
+          </Upload>
         </Form.Item>
 
         <Form.Item

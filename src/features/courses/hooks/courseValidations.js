@@ -11,16 +11,6 @@ export const validateCourseName = (_, value) => {
   return Promise.resolve();
 };
 
-export const validateImageUrl = (_, value) => {
-  if (!value || value.trim() === '') {
-    return Promise.reject('Please enter image URL');
-  }
-  if (value.trim().length > 1000) {
-    return Promise.reject('Image URL must be less than 1000 characters long');
-  }
-  return Promise.resolve();
-};
-
 export const validateDescription = (_, value) => {
   if (!value || value.trim() === '') {
     return Promise.reject('Please enter description');

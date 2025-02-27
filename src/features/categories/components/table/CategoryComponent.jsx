@@ -12,7 +12,11 @@ const { Search } = Input;
 const CategoryComponent = () => {
   const [state, dispatch] = useReducer(categoriesReducer, []);
   const [filterQuery, setFilterQuery] = useState('');
-
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 3, // Keep as specified
+    total: 0, // Will be updated from backend response
+  });
   const { loading, turnOnLoading, turnOffLoading } = useLoading(false);
 
   useEffect(() => {
@@ -22,17 +26,24 @@ const CategoryComponent = () => {
     const fetchCategories = async () => {
       try {
         turnOnLoading();
-        const response = await CategoryService.getAllCategories(
+        const response = await CategoryService.getAllCategoriesPaginated(
+          pagination.current,
+          pagination.pageSize,
+          filterQuery, // Send filterQuery as searchQuery to backend
           abortController.signal
         );
         if (isMounted) {
           dispatch({
             type: CategoriesCrudActionTypes.SET_CATEGORIES,
-            payload: response,
+            payload: response.items || response.Items || [], // Adjust based on response structure
           });
+          setPagination((prev) => ({
+            ...prev,
+            total: response.totalCount || response.TotalCount || 0, // Adjust based on response structure
+          }));
         }
       } catch (error) {
-        message.error(error.message);
+        message.error(error.response?.data || error.message);
       } finally {
         turnOffLoading();
       }
@@ -44,56 +55,137 @@ const CategoryComponent = () => {
       isMounted = false;
       abortController.abort();
     };
-  }, []);
+  }, [pagination.current, pagination.pageSize, filterQuery]); // Re-fetch when page, pageSize, or filterQuery changes
 
-  const memoizedCategoryItemDeleteCallback = useCallback(async (id) => {
-    try {
-      turnOnLoading();
-      await CategoryService.deleteCategoryById(id);
-      dispatch({
-        type: CategoriesCrudActionTypes.DELETE_CATEGORY,
-        payload: { id },
-      });
-      message.success('Category deleted successfully');
-    } catch (error) {
-      message.error(error.response?.data || error.message);
-    } finally {
-      turnOffLoading();
-    }
-  }, []);
+  const memoizedCategoryItemDeleteCallback = useCallback(
+    async (id) => {
+      try {
+        turnOnLoading();
+        await CategoryService.deleteCategoryById(id);
+        message.success('Category deleted successfully');
+
+        // Refetch the current page to get updated data
+        const response = await CategoryService.getAllCategoriesPaginated(
+          pagination.current,
+          pagination.pageSize,
+          filterQuery,
+          new AbortController().signal
+        );
+
+        // Check if the current page has any elements after deletion
+        const currentPageItems = response.items || response.Items || [];
+        if (currentPageItems.length === 0 && pagination.current > 1) {
+          // If current page is empty and not the first page, navigate to the previous page
+          const newCurrentPage = pagination.current - 1;
+          const prevPageResponse =
+            await CategoryService.getAllCategoriesPaginated(
+              newCurrentPage,
+              pagination.pageSize,
+              filterQuery,
+              new AbortController().signal
+            );
+          dispatch({
+            type: CategoriesCrudActionTypes.SET_CATEGORIES,
+            payload: prevPageResponse.items || prevPageResponse.Items || [],
+          });
+          setPagination((prev) => ({
+            ...prev,
+            current: newCurrentPage,
+            total:
+              prevPageResponse.totalCount || prevPageResponse.TotalCount || 0,
+          }));
+        } else {
+          // If current page has elements or it's the first page, update with current page data
+          dispatch({
+            type: CategoriesCrudActionTypes.SET_CATEGORIES,
+            payload: currentPageItems,
+          });
+          setPagination((prev) => ({
+            ...prev,
+            total: response.totalCount || response.TotalCount || 0,
+          }));
+        }
+      } catch (error) {
+        message.error(error.response?.data || error.message);
+      } finally {
+        turnOffLoading();
+      }
+    },
+    [filterQuery, pagination.current, pagination.pageSize]
+  );
 
   const memoizedSaveCategoryButtonClickCallback = useCallback(
     async (editCategory) => {
       try {
-        const response = await CategoryService.updateCategory(editCategory);
-        dispatch({ type: 'UPDATE_CATEGORY', payload: response });
+        turnOnLoading();
+        await CategoryService.updateCategory(editCategory);
         message.success('Category updated successfully');
+        const refreshResponse = await CategoryService.getAllCategoriesPaginated(
+          pagination.current,
+          pagination.pageSize,
+          filterQuery,
+          new AbortController().signal
+        );
+        dispatch({
+          type: CategoriesCrudActionTypes.SET_CATEGORIES,
+          payload: refreshResponse.items || refreshResponse.Items || [],
+        });
+        setPagination((prev) => ({
+          ...prev,
+          total: refreshResponse.totalCount || refreshResponse.TotalCount || 0,
+        }));
+        return true;
       } catch (error) {
-        message.error(error.response?.data || error.message);
+        message.error(error.response?.data || 'Failed to update category');
+        return false;
+      } finally {
+        turnOffLoading();
       }
-      return true;
     },
-    []
+    [filterQuery]
   );
 
-  const handleAddCategory = async (newCategory) => {
-    dispatch({
-      type: CategoriesCrudActionTypes.CREATE_CATEGORY,
-      payload: newCategory,
-    });
-  };
+  const handleAddCategory = useCallback(
+    async (newCategory) => {
+      try {
+        turnOnLoading();
+        await CategoryService.createCategory(newCategory);
+        message.success('Category added successfully');
+        // Refetch only the current page, maintaining pagination and filterQuery
+        const response = await CategoryService.getAllCategoriesPaginated(
+          pagination.current,
+          pagination.pageSize,
+          filterQuery,
+          new AbortController().signal
+        );
+        dispatch({
+          type: CategoriesCrudActionTypes.SET_CATEGORIES,
+          payload: response.items || response.Items || [],
+        });
+        setPagination((prev) => ({
+          ...prev,
+          total: response.totalCount || response.TotalCount || 0,
+        }));
+      } catch (error) {
+        message.error(error.response?.data || error.message);
+      } finally {
+        turnOffLoading();
+      }
+    },
+    [filterQuery, pagination.current, pagination.pageSize]
+  );
 
   const handleFilterChange = (e) => {
     setFilterQuery(e.target.value);
+    setPagination((prev) => ({ ...prev, current: 1 })); // Reset to first page on search
   };
 
-  const filteredCategories = state.filter((category) =>
-    Object.entries(category).some(
-      ([key, value]) =>
-        key !== 'id' &&
-        String(value).toLowerCase().includes(filterQuery.toLowerCase())
-    )
-  );
+  const handleTableChange = (newPagination) => {
+    setPagination(newPagination);
+  };
+
+  // Remove client-side filtering since it's now handled server-side
+  const categoriesToDisplay = state;
 
   return (
     <div>
@@ -107,9 +199,11 @@ const CategoryComponent = () => {
       <AddCategoryForm onAddCategory={handleAddCategory} />
       <Spin spinning={loading}>
         <CategoriesTable
-          categories={filteredCategories}
+          categories={categoriesToDisplay}
           onCategoryItemDelete={memoizedCategoryItemDeleteCallback}
           onSaveCategoryButtonClick={memoizedSaveCategoryButtonClickCallback}
+          pagination={pagination}
+          onTableChange={handleTableChange}
         />
       </Spin>
     </div>

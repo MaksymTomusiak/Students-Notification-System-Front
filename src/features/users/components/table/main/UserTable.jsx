@@ -1,10 +1,12 @@
 import React from 'react';
-import { Table, Tag } from 'antd';
+import { Table, Tag, Typography } from 'antd';
 import UserActions from './UserActions';
 
-function UserTable({ users, onUserDelete }) {
+const { Text } = Typography;
+
+function UserTable({ users, onUserDelete, pagination, onTableChange }) {
   if (users.length === 0) {
-    return <p>No data</p>;
+    return <p style={{ textAlign: 'center' }}>No data</p>;
   }
 
   const columns = [
@@ -24,7 +26,11 @@ function UserTable({ users, onUserDelete }) {
       title: 'Phone Number',
       key: 'phoneNumber',
       align: 'center',
-      render: (_, user) => user.phoneNumber || 'N/A',
+      render: (_, user) => (
+        <Text style={{ textAlign: 'center', display: 'block' }}>
+          {user.phoneNumber || 'N/A'}
+        </Text>
+      ),
     },
     {
       title: 'Roles',
@@ -39,7 +45,11 @@ function UserTable({ users, onUserDelete }) {
             else if (role === 'User') color = 'blue';
 
             return (
-              <Tag color={color} key={role}>
+              <Tag
+                color={color}
+                key={role}
+                style={{ display: 'inline-block', margin: '0 4px' }}
+              >
                 {role}
               </Tag>
             );
@@ -62,7 +72,16 @@ function UserTable({ users, onUserDelete }) {
       columns={columns}
       dataSource={users}
       rowKey="id"
-      pagination={{ pageSize: 10 }}
+      pagination={{
+        ...pagination,
+        showSizeChanger: true,
+        onChange: (page, pageSize) =>
+          onTableChange({ current: page, pageSize }),
+      }}
+      loading={false} // Loading is handled by UserComponent
+      scroll={{ x: true }} // Enable horizontal scrolling if table is too wide
+      tableLayout="auto"
+      style={{ width: '100%' }}
     />
   );
 }

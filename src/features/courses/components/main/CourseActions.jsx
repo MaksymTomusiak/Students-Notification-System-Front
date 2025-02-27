@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Button, Space, message } from 'antd';
 import { DeleteOutlined, EditOutlined, InfoOutlined } from '@ant-design/icons';
 import DeleteConfirmationModal from '../../../../components/common/DeleteConfirmationModal';
@@ -32,6 +32,11 @@ const CourseActions = ({
   const [loading, setLoading] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [feedbackPagination, setFeedbackPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0, // For feedbacks
+  });
   const controllerRef = useRef(null);
   const isFetchingRef = useRef(false);
 
@@ -52,11 +57,20 @@ const CourseActions = ({
     setLoading(true);
     try {
       const [feedbacksResponse, chaptersResponse] = await Promise.all([
-        CourseFeedbacksService.getByCourse(course.id, signal),
+        CourseFeedbacksService.getByCourse(
+          course.id,
+          feedbackPagination.current,
+          feedbackPagination.pageSize,
+          signal
+        ),
         CourseChaptersService.getByCourse(course.id, signal),
       ]);
-      setFeedbacks(feedbacksResponse);
+      setFeedbacks(feedbacksResponse.items || []);
       setChapters(chaptersResponse);
+      setFeedbackPagination((prev) => ({
+        ...prev,
+        total: feedbacksResponse.totalCount || 0,
+      }));
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error(`Fetch error for course ${course.id}:`, error);
@@ -68,7 +82,7 @@ const CourseActions = ({
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [course.id]);
+  }, [course.id, feedbackPagination.current, feedbackPagination.pageSize]);
 
   const handleChapterAdd = useCallback(async (newChapter) => {
     try {
@@ -192,15 +206,19 @@ const CourseActions = ({
     }
   }, [course.id, onCourseDelete]);
 
-  const handleFeedbackDelete = useCallback(async (feedbackId) => {
-    try {
-      await CourseFeedbacksService.deleteFeedbackById(feedbackId);
-      setFeedbacks((prev) => prev.filter((f) => f.id !== feedbackId));
-      message.success('Feedback deleted successfully');
-    } catch (error) {
-      message.error('Failed to delete feedback');
-    }
-  }, []);
+  const handleFeedbackDelete = useCallback(
+    async (feedbackId) => {
+      try {
+        await CourseFeedbacksService.deleteFeedbackById(feedbackId);
+        setFeedbacks((prev) => prev.filter((f) => f.id !== feedbackId));
+        message.success('Feedback deleted successfully');
+        await fetchCourseDetails(); // Refresh feedbacks to maintain pagination
+      } catch (error) {
+        message.error('Failed to delete feedback');
+      }
+    },
+    [fetchCourseDetails]
+  );
 
   const handleUpdate = useCallback(
     async (updatedCourse) => {
@@ -270,6 +288,11 @@ const CourseActions = ({
     setSelectedSubChapter(null);
   }, []);
 
+  const handleFeedbackPaginationChange = (newPagination) => {
+    setFeedbackPagination(newPagination);
+    fetchCourseDetails(); // Re-fetch with new pagination for feedbacks
+  };
+
   return (
     <>
       <Space size="middle" style={{ marginTop: '16px' }}>
@@ -316,6 +339,8 @@ const CourseActions = ({
         onSubChapterDelete={handleSubChapterDelete}
         onChaptersReorder={handleChaptersReorder}
         onSubChaptersReorder={handleSubChaptersReorder}
+        feedbackPagination={feedbackPagination} // Pass feedbacks pagination
+        onFeedbackPaginationChange={handleFeedbackPaginationChange} // Pass callback for feedbacks
       />
 
       <AddChapterModal

@@ -10,7 +10,6 @@ const Login = () => {
   const [user, setUser] = useState({ email: '', password: '' });
 
   useEffect(() => {
-    // Check for token in URL after Facebook redirect
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     if (token) {
@@ -59,7 +58,7 @@ const Login = () => {
   };
 
   const handleFacebookLogin = () => {
-    const returnUrl = `${window.location.origin}/login`; // Redirect back to login page
+    const returnUrl = `${window.location.origin}/login`;
     UserService.initiateFacebookLogin(returnUrl);
   };
 

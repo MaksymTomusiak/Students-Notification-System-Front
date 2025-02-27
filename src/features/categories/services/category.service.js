@@ -2,8 +2,29 @@ import { HttpClient } from '../../../utils/http/HttpClient';
 
 export class CategoryService {
   /**
+   * @param {number} page
+   * @param {number} pageSize
+   * @param {string} searchQuery - Search term for category name
    * @param {AbortSignal} signal
    */
+  static async getAllCategoriesPaginated(
+    page = 1,
+    pageSize = 10,
+    searchQuery = '',
+    signal
+  ) {
+    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    const httpClient = new HttpClient({
+      baseURL: `${apiUrl}/categories`,
+      signal,
+    });
+    let url = `/paginated?page=${page}&pageSize=${pageSize}`;
+    if (searchQuery) {
+      url += `&search=${encodeURIComponent(searchQuery)}`;
+    }
+    return await httpClient.get(url);
+  }
+
   static async getAllCategories(signal) {
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     const httpClient = new HttpClient({

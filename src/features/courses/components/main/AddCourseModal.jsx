@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
-import { Modal, Input, Button, Form, DatePicker, Select, message } from 'antd';
+import {
+  Modal,
+  Input,
+  Button,
+  Form,
+  DatePicker,
+  Select,
+  Upload,
+  message,
+} from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import {
   validateCourseName,
-  validateImageUrl,
   validateDescription,
   validateLanguage,
   validateRequirements,
@@ -16,7 +25,7 @@ const { TextArea } = Input;
 const AddCourseModal = ({ open, onClose, onSave, categories }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const userId = JSON.parse(localStorage.getItem('user')).sub;
+  const userId = JSON.parse(localStorage.getItem('user'))?.sub; // Use optional chaining for safety
 
   const disabledDate = (current) => {
     return current && current < dayjs().startOf('day');
@@ -26,29 +35,43 @@ const AddCourseModal = ({ open, onClose, onSave, categories }) => {
     setLoading(true);
     try {
       const courseData = {
-        ...values,
-        creatorId: userId,
-        startDate: values.dates[0].toISOString(),
-        finishDate: values.dates[1].toISOString(),
+        Name: values.name, // Match backend field name
+        Description: values.description,
+        Language: values.language,
+        Requirements: values.requirements,
+        CreatorId: userId,
+        StartDate: values.dates[0].toISOString(),
+        FinishDate: values.dates[1].toISOString(),
+        CategoriesIds: values.categoriesIds || [],
+        Image:
+          values.image && values.image[0].originFileObj
+            ? values.image[0].originFileObj
+            : null, // Include the file object directly
       };
-      const success = await onSave(courseData);
+
+      const success = await onSave(courseData); // Pass the object to onSave, maintaining the structure
       if (success) {
         message.success('Course added successfully');
         form.resetFields();
         onClose();
       }
     } catch (error) {
-      message.error('Failed to add course');
+      message.error('Failed to add course: ' + (error.message || error));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    onClose();
   };
 
   return (
     <Modal
       title="Add New Course"
       open={open}
-      onCancel={onClose}
+      onCancel={handleCancel}
       footer={null}
       style={{ textAlign: 'center' }}
     >
@@ -62,11 +85,46 @@ const AddCourseModal = ({ open, onClose, onSave, categories }) => {
         </Form.Item>
 
         <Form.Item
-          name="imageUrl"
-          label="Image URL"
-          rules={[{ validator: validateImageUrl }]}
+          name="image"
+          label="Image"
+          valuePropName="file"
+          getValueFromEvent={(e) => {
+            if (Array.isArray(e)) {
+              return e;
+            }
+            return e && e.fileList;
+          }}
+          rules={[
+            {
+              validator: async (_, value) => {
+                if (!value || value.length === 0) {
+                  return Promise.reject('Please upload an image');
+                }
+                const file = value[0]?.originFileObj;
+                if (file) {
+                  const isImage = file.type.startsWith('image/');
+                  if (!isImage) {
+                    return Promise.reject('File must be an image');
+                  }
+                  const isLt2M = file.size / 1024 / 1024 < 2; // Limit to 2MB
+                  if (!isLt2M) {
+                    return Promise.reject('Image must be smaller than 2MB');
+                  }
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
         >
-          <Input placeholder="Enter image URL" />
+          <Upload
+            name="image"
+            listType="picture"
+            maxCount={1}
+            beforeUpload={() => false} // Prevent automatic upload
+            accept="image/*"
+          >
+            <Button icon={<UploadOutlined />}>Upload Image</Button>
+          </Upload>
         </Form.Item>
 
         <Form.Item
